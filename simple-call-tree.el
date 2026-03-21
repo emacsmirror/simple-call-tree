@@ -367,7 +367,7 @@
 ;; More reliable code for building tree (handle duplicate function names properly).
 ;; Code for managing refactoring commands (to be applied to marked functions).
 ;; Multiple query replace command for substituting appropriate lisp macros -
-;; e.g. replace (setq list (remove x list)) with (callf2 remove x list)
+;; e.g. replace (setq list (remove x list)) with (cl-callf2 remove x list)
 ;; Code for finding (and highlighting?) duplicate code and other code smells (difficult).
 ;; Idea: break each function down into a list of keywords for the language in question,
 ;; and look for common subsequences (not too short) among functions.
@@ -1287,7 +1287,7 @@ By default it is set to a list containing the current buffer."
 		      (goto-char startpos)
 		      (while (dolist (regex regexps)
 			       (if (re-search-forward regex endpos t)
-				   (return t)))
+				   (cl-return t)))
 			;; need to go back so that the text properties are read correctly
 			(backward-word)
 			;; check face is valid
@@ -1364,7 +1364,7 @@ nil."
                       (memq (get-text-property start 'face) invalidfonts)
                       (and starttest
                            (not (save-excursion (funcall starttest start)))))
-                  (callf next-single-property-change start 'face))))
+                  (cl-callf next-single-property-change start 'face))))
     (unless (not start)
       (setq end (next-single-property-change start 'face))
       (unless (not end)
@@ -1552,8 +1552,8 @@ By default FUNCS is set to the list of marked items or the function at point if 
                                            (simple-call-tree-get-function-at-point)))))
                       currenttags)
                  (dolist (func funcs)
-                   (callf2 append (sixth (car (simple-call-tree-get-item func))) currenttags))
-                 (callf cl-remove-duplicates currenttags :test 'equal)
+                   (cl-callf2 append (sixth (car (simple-call-tree-get-item func))) currenttags))
+                 (cl-callf cl-remove-duplicates currenttags :test 'equal)
                  (list (simple-call-tree-string-to-tags
                         (org-fast-tag-selection currenttags nil simple-call-tree-org-tag-alist))
                        funcs)))
@@ -1570,8 +1570,8 @@ If REMOVE is non-nil remove the tags instead."
                                            (simple-call-tree-get-function-at-point)))))
                       currenttags)
                  (dolist (func funcs)
-                   (callf2 append (sixth (car (simple-call-tree-get-item func))) currenttags))
-                 (callf cl-remove-duplicates currenttags :test 'equal)
+                   (cl-callf2 append (sixth (car (simple-call-tree-get-item func))) currenttags))
+                 (cl-callf cl-remove-duplicates currenttags :test 'equal)
                  (list (simple-call-tree-string-to-tags
                         (org-fast-tag-selection currenttags nil simple-call-tree-org-tag-alist))
                        funcs
@@ -1658,7 +1658,7 @@ FILES & MAXDEPTH args are same as for `simple-call-tree-display-buffer'."
 If BUFFERS is supplied it should be a list of buffer to analyze, otherwise the buffers
 listed in `simple-call-tree-buffers' will be used."
   (interactive)
-  (callf or buffers simple-call-tree-buffers)
+  (cl-callf or buffers simple-call-tree-buffers)
   (simple-call-tree-analyze buffers)
   (setq simple-call-tree-inverted nil
         simple-call-tree-marked-items nil
@@ -1946,7 +1946,7 @@ Ignore optional args INVERTED and MARKED; they are just for compatibility with `
                         tags)))
       (if (eq simple-call-tree-org-link-style 'radio)
           (insert "\n<<<" fname ">>>")))
-    (callf cdr org-stored-links)))
+    (cl-callf cdr org-stored-links)))
 
 ;; simple-call-tree-info: DONE
 (defun simple-call-tree-outline-level nil
@@ -2086,13 +2086,13 @@ and when sorting the branches of those items the items in the cdr are passed."
   (let ((invertedtree nil))
     (dolist (branch simple-call-tree-alist)
       (setcdr branch (sort (cdr branch) predicate)))
-    (callf sort simple-call-tree-alist
+    (cl-callf sort simple-call-tree-alist
       (lambda (a b)
         (funcall predicate (car a) (car b))))
     (setq invertedtree t)
     (dolist (branch simple-call-tree-inverted-alist)
       (setcdr branch (sort (cdr branch) predicate)))
-    (callf sort simple-call-tree-inverted-alist
+    (cl-callf sort simple-call-tree-inverted-alist
       (lambda (a b)
         (funcall predicate (car a) (car b))))))
 
@@ -2116,10 +2116,10 @@ and when sorting the branches of those items the items in the cdr are passed."
   (interactive)
   (dolist (branch simple-call-tree-alist)
     (setcdr branch (reverse (cdr branch))))
-  (callf reverse simple-call-tree-alist)
+  (cl-callf reverse simple-call-tree-alist)
   (dolist (branch simple-call-tree-inverted-alist)
     (setcdr branch (reverse (cdr branch))))
-  (callf reverse simple-call-tree-inverted-alist)
+  (cl-callf reverse simple-call-tree-inverted-alist)
   (simple-call-tree-revert 1))
 
 ;; simple-call-tree-info: DONE
@@ -2357,7 +2357,7 @@ child node should become its parent. To go back to the previous position you
 need to move to the appropriate child node before invoking again."
   (interactive)
   (let ((chain (simple-call-tree-get-chain)))
-    (callf not simple-call-tree-inverted)
+    (cl-callf not simple-call-tree-inverted)
     (simple-call-tree-revert 1)
     (simple-call-tree-goto-chain chain)))
 
@@ -2457,7 +2457,7 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 	(when (floatp (car specs))
 	  (setf (car specs)
 		(round (* (car specs)
-			  (case (cadr specs)
+			  (cl-case (cadr specs)
 			    ((above below) (window-height win))
 			    ((left right) (window-width win)))))))
 	(apply 'split-window win specs)))))
@@ -2760,7 +2760,7 @@ When narrowed, the buffer will be narrowed to the subtree at point."
 (defun simple-call-tree-toggle-duplicates nil
   "Toggle the inclusion of duplicate sub-branches in the call tree."
   (interactive)
-  (callf not simple-call-tree-nodups)
+  (cl-callf not simple-call-tree-nodups)
   (with-current-buffer simple-call-tree-buffer-name
     (simple-call-tree-revert 1)))
 
@@ -3021,7 +3021,7 @@ If UNMARK is non-nil unmark the items instead."
                                simple-call-tree-org-highest-priority simple-call-tree-org-lowest-priority)
                       (list (read-char-exclusive) current-prefix-arg)))
   (if (= value ?\ ) (setq value nil)
-    (callf upcase value))
+    (cl-callf upcase value))
   (simple-call-tree-mark-by-pred (lambda (x) (eq (fifth (car x)) value)) unmark))
 
 ;; simple-call-tree-info: DONE
@@ -3100,7 +3100,7 @@ Note: you should make sure buffer is not read-only before calling this function.
   (read-only-mode -1)
   (dolist (func simple-call-tree-marked-items)
     (simple-call-tree-kill func)
-    (callf2 remove func simple-call-tree-marked-items))
+    (cl-callf2 remove func simple-call-tree-marked-items))
   (read-only-mode 1))
 
 ;; This command should be bound to g key for compatibility with dired.
