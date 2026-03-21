@@ -2523,8 +2523,8 @@ If either string has no face then they are assumed to be the same item."
          (or (not face1)
              (not face2)
              (equal face1 face2)
-             (member face1 face2)
-             (member face2 face1)))))
+             (and (listp face2) (member face1 face2))
+             (and (listp face1) (member face2 face1))))))
 
 ;; simple-call-tree-info: DONE
 (defun simple-call-tree-goto-func (fnstr)
