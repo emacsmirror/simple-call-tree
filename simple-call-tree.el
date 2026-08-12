@@ -860,7 +860,7 @@ as a flat list."
     (define-key simple-call-tree-mode-map (kbd "<tab>") 'outline-toggle-children))
   (define-key simple-call-tree-mode-map (kbd "<right>") 'outline-show-children)
   (define-key simple-call-tree-mode-map (kbd "<left>") 'hide-subtree)
-  (define-key simple-call-tree-mode-map (kbd "a") 'show-all)
+  (define-key simple-call-tree-mode-map (kbd "a") 'outline-show-all)
   (define-key simple-call-tree-mode-map (kbd "1") 'simple-call-tree-delete-other-windows)
   (define-key simple-call-tree-mode-map (kbd "h") 'hide-sublevels)
   (define-key simple-call-tree-mode-map (kbd "w") 'widen)
