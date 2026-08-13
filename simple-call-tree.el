@@ -931,8 +931,12 @@ as a flat list."
   (define-key simple-call-tree-mode-map (kbd "C-c C-a") 'simple-call-tree-add-tags)
   (define-key simple-call-tree-mode-map (kbd "C-c C-t") 'simple-call-tree-set-todo)
   (define-key simple-call-tree-mode-map (kbd "C-c C-n") 'simple-call-tree-display-notes)
-  (define-key simple-call-tree-mode-map (kbd "C-c C-v") 'simple-call-tree-change-default-view)
   (define-key simple-call-tree-mode-map (kbd "C-c ,") 'simple-call-tree-set-priority)
+  ;; window/view commands
+  (define-key simple-call-tree-mode-map (kbd "C-c C-v") 'simple-call-tree-change-default-view)
+  (define-key simple-call-tree-mode-map (kbd "C-c C-v") 'simple-call-tree-change-default-view)
+  (define-key simple-call-tree-mode-map (kbd "C-c C-<right>") 'simple-call-tree-next-split)
+  (define-key simple-call-tree-mode-map (kbd "C-c C-<left>") 'simple-call-tree-prev-split)
   ;; Set the keymap
   (use-local-map simple-call-tree-mode-map)
   ;; Menu definition
@@ -2461,7 +2465,8 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 		(choosesplit (c) (cond
 				  ((integerp c) (>= simple-call-tree-current-maxdepth c))
 				  ((consp c) (eval c))
-				  (t (err x))))) ;this error is ignored by `window--try-to-split-window'
+				  (c t)
+				  (t (err x)))))
       (let* ((current-split (cdr (assoc (or simple-call-tree-current-split
 					    (caar simple-call-tree-window-splits))
 					simple-call-tree-window-splits)))
@@ -2477,9 +2482,27 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 	(apply 'split-window win specs)))))
 
 ;; simple-call-tree-info: TODO
-(defun simple-call-tree-next-split nil t)
+(defun simple-call-tree-next-split nil
+  "Change the current window splitting method to the next one in `simple-call-tree-window-splits'."
+  (interactive)
+  (unless simple-call-tree-current-split
+    (setq simple-call-tree-current-split (caar simple-call-tree-window-splits)))
+  (let* ((splits (mapcar #'car simple-call-tree-window-splits))
+	 (n (1+ (cl-position simple-call-tree-current-split splits :test 'string=))))
+    (setq simple-call-tree-current-split
+	  (nth (if (= n (length splits)) 0 n) splits)))
+  (message "Current splitting method: %s" simple-call-tree-current-split))
 ;; simple-call-tree-info: TODO
-(defun simple-call-tree-prev-split nil t)
+(defun simple-call-tree-prev-split nil
+  "Change the current window splitting method to the previous one in `simple-call-tree-window-splits'."
+  (interactive)
+  (unless simple-call-tree-current-split
+    (setq simple-call-tree-current-split (caar simple-call-tree-window-splits)))
+  (let* ((splits (mapcar #'car simple-call-tree-window-splits))
+	 (n (1- (cl-position simple-call-tree-current-split splits :test 'string=))))
+    (setq simple-call-tree-current-split
+	  (nth (if (< n 0) (1- (length splits)) n) splits)))
+  (message "Current splitting method: %s" simple-call-tree-current-split))
 
 
 ;; simple-call-tree-info: TODO  handle option to show code in separate frame
