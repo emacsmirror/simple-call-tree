@@ -827,8 +827,9 @@ as a flat list."
 	comment-start ";"
 	truncate-lines t)
   (outline-minor-mode 1)
-  (setq outline-regexp "^[|*]\\([-<>]*\\)\\(\\( +\\w+\\)?\\)\\(\\( \\[#.\\]\\)?\\) "
-        outline-level 'simple-call-tree-outline-level)
+  (setq-local outline-regexp "^[|*]\\([-<>]*\\)\\(\\( +\\w+\\)?\\)\\(\\( \\[#.\\]\\)?\\) "
+              outline-level 'simple-call-tree-outline-level
+	      outline-heading-end-regexp "\n")
   ;; Define keys
   (define-key simple-call-tree-mode-map (kbd "q") 'simple-call-tree-quit)
   (define-key simple-call-tree-mode-map (kbd "C-x C-s") 'simple-call-tree-save)
@@ -953,6 +954,8 @@ as a flat list."
        :key "v"]
       ["Change Default View" simple-call-tree-change-default-view
        :help "Change which part of a function is viewed by default"]
+      ["Change Window Split" simple-call-tree-next-split
+       :help "Change how the window is split to view a function"]
       ["Visit Function At Point" simple-call-tree-visit-function
        :help "Visit the function at point"]
       ["Sort items..." (keymap "Sort"
