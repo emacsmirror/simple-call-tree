@@ -289,8 +289,8 @@
 ;;    How to recenter the window after viewing a toplevel header.
 ;;    default = (quote top)
 ;;  `simple-call-tree-window-splits'
-;;    Alist of items containing info about how to split the window when viewing code (e.g. in follow mode). 
-;;    default = (quote ((2 1.5 5.0 right below ...) (1 5 below)))
+;;    Alist of window splitting specifications.
+;;    default = (("Adaptive" (2 1.5 5.0 right below 5 2) (1 5 below)) ("Show below" (t 15 below)) ("Show to right" (t 40 right)))
 ;;  `simple-call-tree-default-valid-fonts'
 ;;    List of fonts to use for finding objects to include in the call tree.
 ;;    default = (quote (font-lock-function-name-face font-lock-variable-name-face))
@@ -460,13 +460,19 @@ absolute value indicates the size of the new window created after splitting."
 		(widget-put w :error "Value must be positive")
 		w)))
 
-;; simple-call-tree-info: CHANGE  option to show code in separate frame
-(defcustom simple-call-tree-window-splits '((2 1.5 5.0 right below 5 2) (1 5 below))
-  "Alist of items containing info about how to split the window when viewing code (e.g. in follow mode). 
-The item used to determine the split is the first item with a car that is either an integer less 
-than or equal to the current depth, or an s-expression that evaluates to non-nil.
+;; simple-call-tree-info: CHECK
+(defcustom simple-call-tree-window-splits '(("Adaptive" (2 1.5 5.0 right below 5 2) (1 5 below))
+					    ("Show below" (t 15 below))
+					    ("Show to right" (t 40 right)))
+  "Alist of window splitting specifications.
 
-The cdr is used to determine the size and orientation of the split, which are then fed into the
+Each specification has a description (the key), and a list of items (the value) containing info about
+how to split the window when viewing code (e.g. in follow mode).
+
+For a given specification, the item used to determine the split is the first item with a car that is
+either an integer less than or equal to the current depth, or an s-expression that evaluates to non-nil.
+
+The item cdr is used to determine the size and orientation of the split, which are then fed into the
 `split-window' function. It can be either a list of size & orientation values for fixed splitting,
 or a list of 6 parameters for adaptive splitting.
 For fixed splitting the size parameter can be interpreted in one of the following ways:
@@ -516,49 +522,55 @@ Whichever has the greatest value is the chosen split."
   ;; 2 instead of 1.5 for the second term, but this results in formulas that are harder to maximize or less responsive
   ;; to parameter changes.
   :group 'simple-call-tree
-  :type '(alist :key-type
-		(choice :tag "Condition"
-			(integer :tag "Minimum depth"
-				 :help-echo "Select split if tree depth is at least this number"
-				 :value 1
-				 :validate
-				 (lambda (w)
-				   (when (< (widget-value w) 1)
-				     (widget-put w :error "Depth must be greater than 0")
-				     w)))
-			(sexp :tag "S-expression"
-			      :help-echo "Select split if sexp evaluates to non-nil"))
+  :type '(alist :key-type (string :tag "Description") 
 		:value-type
-		(choice :tag "Code window display"
-			(list :tag "Fixed"
-			      (window-split :tag "Size" :value 10)
-			      (split-orientation :tag "Orientation of code window"
-						 :value below))
-			(list :tag "Adaptive"
-			      (positive-float
-			       :tag "Ratio of values of code to call-tree windows"
-			       :value 2.0)
-			      (positive-float
-			       :tag "Ratio of values of rows to columns"
-			       :value 3.0)
-			      (split-orientation
-			       :tag "Location of code window for horizontal split"
-			       :value right)
-			      (split-orientation
-			       :tag "Location of code window for vertical split"
-			       :value below)
-			      (window-split :tag "Min columns" :value 5
-					    :validate
-					    (lambda (w)
-					      (when (<= (widget-value w) 0)
-						(widget-put w :error "Value must be > 0")
-						w)))
-			      (window-split :tag "Min rows" :value 2
-					    :validate
-					    (lambda (w)
-					      (when (<= (widget-value w) 0)
-						(widget-put w :error "Value must be > 0")
-						w)))))))
+		(alist :key-type
+		       (choice :tag "Condition"
+			       (integer :tag "Minimum depth"
+					:help-echo "Select split if tree depth is at least this number"
+					:value 1
+					:validate
+					(lambda (w)
+					  (when (< (widget-value w) 1)
+					    (widget-put w :error "Depth must be greater than 0")
+					    w)))
+			       (sexp :tag "S-expression"
+				     :help-echo "Select split if sexp evaluates to non-nil"))
+		       :value-type
+		       (choice :tag "Code window display"
+			       (list :tag "Fixed"
+				     (window-split :tag "Size" :value 10)
+				     (split-orientation :tag "Orientation of code window"
+							:value below))
+			       (list :tag "Adaptive"
+				     (positive-float
+				      :tag "Ratio of values of code to call-tree windows"
+				      :value 2.0)
+				     (positive-float
+				      :tag "Ratio of values of rows to columns"
+				      :value 3.0)
+				     (split-orientation
+				      :tag "Location of code window for horizontal split"
+				      :value right)
+				     (split-orientation
+				      :tag "Location of code window for vertical split"
+				      :value below)
+				     (window-split :tag "Min columns" :value 5
+						   :validate
+						   (lambda (w)
+						     (when (<= (widget-value w) 0)
+						       (widget-put w :error "Value must be > 0")
+						       w)))
+				     (window-split :tag "Min rows" :value 2
+						   :validate
+						   (lambda (w)
+						     (when (<= (widget-value w) 0)
+						       (widget-put w :error "Value must be > 0")
+						       w))))))))
+
+;; simple-call-tree-info: CHECK
+(defvar simple-call-tree-current-split nil
+  "Description of current window splitting specification from `simple-call-tree-window-splits'.")
 
 ;; simple-call-tree-info: DONE
 (defcustom simple-call-tree-default-valid-fonts
@@ -2418,8 +2430,7 @@ If called with a prefix ARG the portion viewed will be the opposite to normal (e
 ;; simple-call-tree-info: TODO this is too complex and doesn't work well
 (cl-defun simple-call-tree-adaptive-split (c2t v2h hside vside &optional (minh 5) (minv 2))
   "Return values for split size & orientation, based on call tree statistics.
-The split is determined according to parameters defined in `simple-call-tree-window-splits'.
-See documentation of that option for details on the algorithm used to determine the split."
+See documentation of `simple-call-tree-window-splits' for details on the algorithm used to determine the split."
   (cl-flet ((optsplit (r max1) (- max1 (/ (* 4 r r) 9)))
 	    (splitval (z v1 v2 max1 max2)
 		      (- (* (- max2 z) v2) (* (expt (- max1 z) 1.5) v1))))
@@ -2450,8 +2461,11 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 		(choosesplit (c) (cond
 				  ((integerp c) (>= simple-call-tree-current-maxdepth c))
 				  ((consp c) (eval c))
-				  (t (err x)))))
-      (let ((specs (cdr (assoc-if #'choosesplit simple-call-tree-window-splits))))
+				  (t (err x))))) ;this error is ignored by `window--try-to-split-window'
+      (let* ((current-split (cdr (assoc (or simple-call-tree-current-split
+					    (caar simple-call-tree-window-splits))
+					simple-call-tree-window-splits)))
+	     (specs (cdr (cl-assoc-if #'choosesplit current-split))))
 	(when (> (length specs) 2)
 	  (setq specs (apply 'simple-call-tree-adaptive-split specs)))
 	(when (floatp (car specs))
@@ -2461,6 +2475,12 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 			    ((above below) (window-height win))
 			    ((left right) (window-width win)))))))
 	(apply 'split-window win specs)))))
+
+;; simple-call-tree-info: TODO
+(defun simple-call-tree-next-split nil t)
+;; simple-call-tree-info: TODO
+(defun simple-call-tree-prev-split nil t)
+
 
 ;; simple-call-tree-info: TODO  handle option to show code in separate frame
 (cl-defun simple-call-tree-visit-function (&optional arg)
