@@ -935,8 +935,8 @@ as a flat list."
   ;; window/view commands
   (define-key simple-call-tree-mode-map (kbd "C-c C-v") 'simple-call-tree-change-default-view)
   (define-key simple-call-tree-mode-map (kbd "C-c C-v") 'simple-call-tree-change-default-view)
-  (define-key simple-call-tree-mode-map (kbd "C-c C-<right>") 'simple-call-tree-next-split)
-  (define-key simple-call-tree-mode-map (kbd "C-c C-<left>") 'simple-call-tree-prev-split)
+  (define-key simple-call-tree-mode-map (kbd "C-|") 'simple-call-tree-next-split)
+  (define-key simple-call-tree-mode-map (kbd "C-\\") 'simple-call-tree-next-split)
   ;; Set the keymap
   (use-local-map simple-call-tree-mode-map)
   ;; Menu definition
@@ -2438,7 +2438,7 @@ If called with a prefix ARG the portion viewed will be the opposite to normal (e
 See documentation of `simple-call-tree-window-splits' for details on the algorithm used to determine the split."
   (cl-flet ((optsplit (r max1) (- max1 (/ (* 4 r r) 9)))
 	    (splitval (z v1 v2 max1 max2)
-		      (- (* (- max2 z) v2) (* (expt (- max1 z) 1.5) v1))))
+	      (- (* (- max2 z) v2) (* (expt (- max1 z) 1.5) v1))))
     (let* ((width (window-width (get-buffer-window simple-call-tree-buffer-name)))
 	   (height (window-height (get-buffer-window simple-call-tree-buffer-name)))
 	   (maxwidth simple-call-tree-max-linewidth)
@@ -2455,7 +2455,7 @@ See documentation of `simple-call-tree-window-splits' for details on the algorit
 	  (list hsplit hside)
 	(list vsplit vside)))))
 
-;; simple-call-tree-info: TODO  handle option to show code in separate frame
+;; simple-call-tree-info: TODO handle option to show code in separate frame
 (cl-defun simple-call-tree-split-window (win)
   "Split the *Simple Call Tree* window (WIN) to accomodate the code buffer.
 Use the values in `simple-call-tree-window-splits' to determine the split."
@@ -2483,28 +2483,24 @@ Use the values in `simple-call-tree-window-splits' to determine the split."
 	(apply 'split-window win specs)))))
 
 ;; simple-call-tree-info: TODO
-(defun simple-call-tree-next-split nil
-  "Change the current window splitting method to the next one in `simple-call-tree-window-splits'."
-  (interactive)
+(defun simple-call-tree-next-split (&optional arg)
+  "Change the current window splitting method to the next one in `simple-call-tree-window-splits'.
+If a prefix ARG is supplied, move that many splits forward/backward."
+  (interactive "p")
   (unless simple-call-tree-current-split
     (setq simple-call-tree-current-split (caar simple-call-tree-window-splits)))
   (let* ((splits (mapcar #'car simple-call-tree-window-splits))
-	 (n (1+ (cl-position simple-call-tree-current-split splits :test 'string=))))
-    (setq simple-call-tree-current-split
-	  (nth (if (= n (length splits)) 0 n) splits)))
+	 (n (mod (+ (or arg 1)
+		    (cl-position simple-call-tree-current-split
+				 splits :test 'string=))
+		 (length splits)))
+	 (funmark (get-text-property
+                   (next-single-property-change (line-beginning-position) 'location)
+		   'location))
+         (win (get-buffer-window (marker-buffer funmark))))
+    (setq simple-call-tree-current-split (nth n splits))
+    (when win (delete-window win)))
   (message "Current splitting method: %s" simple-call-tree-current-split))
-;; simple-call-tree-info: TODO
-(defun simple-call-tree-prev-split nil
-  "Change the current window splitting method to the previous one in `simple-call-tree-window-splits'."
-  (interactive)
-  (unless simple-call-tree-current-split
-    (setq simple-call-tree-current-split (caar simple-call-tree-window-splits)))
-  (let* ((splits (mapcar #'car simple-call-tree-window-splits))
-	 (n (1- (cl-position simple-call-tree-current-split splits :test 'string=))))
-    (setq simple-call-tree-current-split
-	  (nth (if (< n 0) (1- (length splits)) n) splits)))
-  (message "Current splitting method: %s" simple-call-tree-current-split))
-
 
 ;; simple-call-tree-info: TODO  handle option to show code in separate frame
 (cl-defun simple-call-tree-visit-function (&optional arg)
